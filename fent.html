@@ -1,3 +1,33 @@
+<style>#theme-toggle {
+  position: relative; /* needed for absolute child positioning */
+}
+
+#click-arrow {
+  position: absolute;
+  top: -105px;   /* adjust this for arrow position */
+  right: -120px; /* adjust spacing */
+  width: 160px; /* size of your arrow */
+  pointer-events: auto; /* clickable */
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  
+}
+
+#click-arrow.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+</style>
+<script>// Arrow disappears when clicked
+document.addEventListener('DOMContentLoaded', () => {
+  const arrow = document.getElementById('click-arrow');
+  if (arrow) {
+    arrow.addEventListener('click', () => {
+      arrow.classList.add('hidden');
+    });
+  }
+});
+</script>
 <!doctype html>
 <html lang="en">
 <head>
@@ -254,12 +284,16 @@
       </nav>
     </div>
   </div>
+  
 
   <!-- single toggle button (one button) at bottom center -->
-  <div id="theme-toggle" role="button" aria-pressed="false" tabindex="0">
-    <div id="theme-dot" aria-hidden="true"></div>
-    <span id="theme-label">Ken</span>
-  </div>
+ <div id="theme-toggle" role="button" aria-pressed="false" tabindex="0">
+  <div id="theme-dot" aria-hidden="true"></div>
+  <span id="theme-label">Ken</span>
+  <img id="click-arrow" src="click.png" alt="click hint">
+</div>
+
+
 
   <script>
     (function(){
