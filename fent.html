@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Simple favicon -->
+<link rel="icon" type="image/x-icon" href="cartichain.png">
+<link rel="icon" type="image/png" href="cartichain.png">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>fent fold</title>
+
+  <!-- Font Awesome (CSS for immediate icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <style>
+    :root{
+      --theme-color: #007bff; /* default Ken blue */
+    }
+
+    html,body { height:100%; }
+    body {
+      margin:0;
+      background:#000;
+      color:var(--theme-color);
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Custom cursor styles */
+    #custom-cursor {
+      position: fixed;
+      width: 64px;
+      height: 64px;
+      pointer-events: none;
+      z-index: 9999;
+      background-size: contain;
+      background-repeat: no-repeat;
+      display: none;
+      transition: transform 0.1s ease;
+    }
+    
+    body.custom-cursor-active {
+      cursor: none !important;
+    }
+    
+    #custom-cursor.ken-cursor {
+      background-image: url('cross.png');
+    }
+    
+    #custom-cursor.carti-cursor {
+      background-image: url('cartichain.png');
+    }
+
+    /* full-screen background video */
+    video.bg-video {
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      z-index:-2;
+      display:none; /* show after user clicks splash */
+    }
+
+    /* subtle dark overlay on top of video */
+    .video-overlay {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.45);
+      z-index:-1;
+      display:none;
+    }
+
+    /* Center content */
+    .center-wrap{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:2rem;
+      box-sizing:border-box;
+    }
+
+    .card {
+      text-align:center;
+      max-width:720px;
+      width:100%;
+      padding:2.2rem 2.6rem;
+      border-radius:18px;
+      background:transparent; /* NO boxed outline as requested */
+      margin:auto;
+    }
+
+    h1.brand {
+      font-size:64px;
+      line-height:1;
+      margin:0 0 8px 0;
+      font-weight:800;
+      color:var(--theme-color);
+      text-shadow: 0 0 16px rgba(0,0,0,0.6), 0 0 18px var(--theme-color);
+    }
+
+    .location {
+      color:var(--theme-color);
+      display:flex;
+      gap:.5rem;
+      align-items:center;
+      justify-content:center;
+      margin-bottom:26px;
+      font-size:16px;
+      filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+    }
+
+    /* icons row */
+    .icons {
+      display:flex;
+      gap:34px;
+      justify-content:center;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:4px;
+    }
+
+    /* icon style — filled, solid color & glow */
+    .icon {
+      font-size:36px;
+      color:var(--theme-color);
+      filter: drop-shadow(0 0 8px rgba(0,0,0,0.6)) drop-shadow(0 0 10px var(--theme-color));
+      transition: transform .18s cubic-bezier(.2,.9,.2,1);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:48px; height:48px; /* gives generous hit area */
+      line-height:1;
+      text-decoration:none;
+    }
+
+    /* hover: only scale slightly - DO NOT change shadow */
+    .icon:hover {
+      transform: scale(1.08);
+    }
+
+    /* bottom single toggle button (center) */
+    #theme-toggle {
+      position:fixed;
+      left:50%;
+      transform:translateX(-50%);
+      bottom:20px;
+      z-index:40;
+      display:none; /* shown after splash */
+      background:rgba(20,20,20,0.8);
+      padding:8px 14px;
+      border-radius:999px;
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 6px 20px rgba(0,0,0,0.6);
+      border:2px solid rgba(255,255,255,0.02);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      user-select:none;
+    }
+
+    /* small active dot to show theme color */
+    #theme-dot {
+      width:12px; height:12px; border-radius:50%;
+      background:var(--theme-color);
+      box-shadow:0 0 12px var(--theme-color);
+      flex:0 0 12px;
+    }
+
+    /* splash overlay */
+    #splash {
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#000;
+      z-index:60;
+      cursor:pointer;
+    }
+    #splash h2 {
+      color:var(--theme-color);
+      text-shadow: 0 0 12px var(--theme-color);
+      font-size:20px;
+      font-weight:700;
+      margin:0;
+      letter-spacing:.4px;
+    }
+
+    /* small responsiveness */
+    @media (max-width:420px){
+      h1.brand{ font-size:42px; }
+      .icon{ font-size:30px; width:42px;height:42px; }
+      #custom-cursor {
+        width: 48px;
+        height: 48px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- background video (will be shown after user clicks splash) -->
+  <video id="bg-video" class="bg-video" playsinline muted loop poster="fallback.jpg">
+    <source id="bg-src" src="overseas.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <div id="video-overlay" class="video-overlay"></div>
+
+  <!-- splash (required to allow unmuted playback) -->
+  <div id="splash">
+    <h2 style="color:#fff; box-shadow: #fff; text-shadow: #fff ;" >click to enter...</h2>
+  </div>
+
+  <!-- Custom cursor element -->
+  <div id="custom-cursor" class="ken-cursor"></div>
+
+  <!-- main content -->
+  <div class="center-wrap">
+    <div class="card" id="main" style="opacity:0; pointer-events:none">
+      <h1 class="brand" id="brand-text">fent</h1>
+      <div class="location">
+        <i class="fa-solid fa-location-dot" style="color:var(--theme-color)"></i>
+        <span>los angeles</span>
+      </div>
+
+      <nav class="icons" aria-label="social links">
+        <a class="icon" title="Discord" href="https://discord.com/users/fentisback" target="_blank" rel="noreferrer">
+          <i class="fa-brands fa-discord"></i>
+        </a>
+        <a class="icon" title="Instagram" href="https://instagram.com/fentisback" target="_blank" rel="noreferrer">
+          <i class="fa-brands fa-instagram"></i>
+        </a>
+        <a class="icon" title="Steam" href="https://steamcommunity.com/id/fentfolduser" target="_blank" rel="noreferrer">
+          <i class="fa-brands fa-steam"></i>
+        </a>
+        <a class="icon" title="TikTok" href="https://tiktok.com/@aaronlovescatss" target="_blank" rel="noreferrer">
+          <i class="fa-brands fa-tiktok"></i>
+        </a>
+        <a class="icon" title="Snapchat" href="https://snapchat.com/add/aaron42220" target="_blank" rel="noreferrer">
+          <i class="fa-brands fa-snapchat"></i>
+        </a>
+        <a class="icon" title="Email" href="mailto:fentisback@gmail.com">
+          <i class="fa-solid fa-envelope"></i>
+        </a>
+        <a class="icon" title="Twitter" href="https://twitter.com/fentisback" target="_blank" rel="noreferrer">
+          <i class="fa-brands fa-twitter"></i>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- single toggle button (one button) at bottom center -->
+  <div id="theme-toggle" role="button" aria-pressed="false" tabindex="0">
+    <div id="theme-dot" aria-hidden="true"></div>
+    <span id="theme-label">Ken</span>
+  </div>
+
+  <script>
+    (function(){
+      const splash = document.getElementById('splash');
+      const main = document.getElementById('main');
+      const video = document.getElementById('bg-video');
+      const bgSrc = document.getElementById('bg-src');
+      const overlay = document.getElementById('video-overlay');
+      const toggle = document.getElementById('theme-toggle');
+      const dot = document.getElementById('theme-dot');
+      const label = document.getElementById('theme-label');
+      const cursor = document.getElementById('custom-cursor');
+
+      const THEMES = {
+        ken: { 
+          color: '#ff0000', 
+          file: 'overseas.mp4', 
+          skip:4, 
+          label:'Ken',
+          cursorClass: 'ken-cursor'
+        },
+        carti: { 
+          color: '#ffffff', 
+          file: 'EVILJ0RDAN.mp4', 
+          skip:0, 
+          label:'Carti',
+          cursorClass: 'carti-cursor'
+        }
+      };
+
+      // current theme state
+      let current = localStorage.getItem('fent_theme') || 'ken';
+      
+
+      // helper to apply CSS color variable & update toggle UI
+      function applyColor(color){
+        document.documentElement.style.setProperty('--theme-color', color);
+        dot.style.background = color;
+        dot.style.boxShadow = `0 0 12px ${color}`;
+      }
+
+      // set video src and (optionally) set skip seconds and play
+      function setVideo(file, skipSeconds = 0, playAfter = false){
+        const currentSrc = bgSrc.getAttribute('src') || '';
+        if (currentSrc === file) {
+          if (skipSeconds > 0 && video.readyState >= 1) {
+            try { video.currentTime = skipSeconds; } catch(e) { console.warn('Failed to set video time:', e); }
+          }
+          if (playAfter) {
+            video.play().catch(e => console.warn('Video play failed:', e));
+          }
+          return;
+        }
+
+        // Pause current before changing
+        video.pause();
+
+        bgSrc.src = file;
+        video.load();
+
+        video.addEventListener('loadedmetadata', function once(){
+          if (skipSeconds > 0) {
+            try { video.currentTime = skipSeconds; } catch(e) { console.warn('Failed to set video time:', e); }
+          }
+          if (playAfter) {
+            video.play().catch(err => {
+              console.warn('Video play prevented:', err);
+              // Fallback: hide video and use static background
+              video.style.display = 'none';
+              document.body.style.background = '#000';
+            });
+          }
+        }, { once: true });
+      }
+
+      // toggle between Ken & Carti
+      function toggleTheme(userInitiated = true){
+        current = (current === 'ken') ? 'carti' : 'ken';
+        const t = (current === 'ken') ? THEMES.ken : THEMES.carti;
+
+        applyColor(t.color);
+        label.textContent = t.label;
+        toggle.setAttribute('aria-pressed', current === 'carti' ? 'true' : 'false');
+        
+        // Update cursor
+        cursor.className = t.cursorClass;
+
+        setVideo(t.file, t.skip, true); // Always play after toggle, since user click
+
+        // If already entered, unmute immediately
+        if (splash.style.display === 'none') {
+          video.muted = false;
+        }
+
+        localStorage.setItem('fent_theme', current);
+      }
+
+      // Custom cursor functionality
+      function initCustomCursor() {
+        // Track mouse movement
+        document.addEventListener('mousemove', (e) => {
+          cursor.style.left = e.clientX - (cursor.offsetWidth / 2) + 'px';
+          cursor.style.top = e.clientY - (cursor.offsetHeight / 2) + 'px';
+        });
+
+        // Enable custom cursor when mouse enters the document
+        document.addEventListener('mouseenter', () => {
+          document.body.classList.add('custom-cursor-active');
+          cursor.style.display = 'block';
+        });
+
+        // Disable custom cursor when mouse leaves the document
+        document.addEventListener('mouseleave', () => {
+          cursor.style.display = 'none';
+        });
+
+        // Add hover effect for interactive elements
+        const interactiveElements = document.querySelectorAll('a, button, #theme-toggle');
+        interactiveElements.forEach(el => {
+          el.addEventListener('mouseenter', () => {
+            cursor.style.transform = 'scale(1.2)';
+          });
+          el.addEventListener('mouseleave', () => {
+            cursor.style.transform = 'scale(1)';
+          });
+        });
+      }
+
+      // initialize UI colors & label and preload video muted
+      (function initFromSaved(){
+        const t = (current === 'ken') ? THEMES.ken : THEMES.carti;
+        applyColor(t.color);
+        label.textContent = t.label;
+        cursor.className = t.cursorClass;
+        bgSrc.src = t.file;
+        video.load();
+        // Play muted immediately (allowed without gesture)
+        video.play().catch(err => console.warn('Initial muted play failed:', err));
+        
+        // Initialize custom cursor
+        initCustomCursor();
+      })();
+
+      // show main & unmute video after splash click
+      splash.addEventListener('click', function onSplash(){
+        try {
+          // Hide splash
+          splash.style.display = 'none';
+          // Show video and overlay
+          overlay.style.display = 'block';
+          video.style.display = 'block';
+          // Show main content
+          main.style.transition = 'opacity .5s ease';
+          main.style.opacity = '1';
+          main.style.pointerEvents = 'auto';
+          // Show toggle
+          toggle.style.display = 'flex';
+
+          // Unmute the video (since it's already playing muted)
+          video.muted = false;
+
+          // If not playing for some reason, play it
+          if (video.paused) {
+            video.play().catch(err => console.warn('Play after splash failed:', err));
+          }
+        } catch (e) {
+          console.error('Splash click error:', e);
+          // Ensure UI is still usable even if video fails
+          splash.style.display = 'none';
+          main.style.transition = 'opacity .5s ease';
+          main.style.opacity = '1';
+          main.style.pointerEvents = 'auto';
+          toggle.style.display = 'flex';
+          video.style.display = 'none';
+          document.body.style.background = '#000';
+        }
+
+        splash.removeEventListener('click', onSplash);
+      });
+
+      // toggle click
+      toggle.addEventListener('click', () => toggleTheme(true));
+
+      // keyboard toggle
+      toggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleTheme(true);
+        }
+      });
+
+      // video error handling
+      video.addEventListener('error', (ev) => {
+        console.error('Video playback error:', ev);
+        video.style.display = 'none';
+        document.body.style.background = '#000';
+      });
+
+      // prevent text selection
+      toggle.addEventListener('mousedown', e => e.preventDefault());
+    })();
+  </script>
+</body>
+</html>
+<script>// Add this to your existing script
+function createWeirdFontCycler() {
+    const brandText = document.getElementById('brand-text');
+    if (!brandText) return;
+    
+    // Really weird, distorted, and unconventional fonts
+    const weirdFonts = [
+        'Chiller', 'Jokerman', 'Ravie', 'Algerian', 'Blackadder ITC',
+        'Bauhaus 93', 'Broadway', 'Cooper Black', 'Curlz MT', 'Desdemona',
+        'Elephant', 'Felix Titling', 'Freestyle Script', 'Gigi', 'Harrington',
+        'Harlow Solid', 'Impact', 'Kunstler Script', 'Lucida Handwriting',
+        'Magneto', 'Matura MT Script Capitals', 'Mistral', 'Old English Text MT',
+        'Parchment', 'Playbill', 'Poor Richard', 'Pristina', 'Rage Italic',
+        'Script MT Bold', 'Showcard Gothic', 'Snap ITC', 'Stencil', 'Viner Hand ITC',
+        'Vivaldi', 'Vladimir Script', 'Wide Latin', 'Wingdings', 'Webdings',
+        'MS Gothic', 'Comic Sans MS', 'Papyrus'
+    ];
+    
+    // Different language/script variations of "fent"
+    const languageVariations = [
+        'fent', 'ƒєит', 'ｷ乇刀ｲ', 'ᖴEᑎT', 'ꜰᴇɴᴛ',
+        '🝯𐊇𐊚Ⲧ', '𝕗𝕖𝕟𝕥', '𝖋𝖊𝖓𝖙', 'ｆｅｎｔ', 'Ⓕⓔⓝⓣ',
+        '🅕🅔🅝🅣', '𝐟𝐞𝐧𝐭', '𝑓𝑒𝑛𝑡', '𝒻𝑒𝑛𝑡', '𝓯𝓮𝓷𝓽',
+        'FΞПƬ', 'ᶠᴱᴺᵀ', '₣Ɇ₦₮', '🄵🄴🄽🅃', '🇫​🇪​🇳​🇹'
+    ];
+    
+    let fontIndex = 0;
+    let textIndex = 0;
+    let originalText = brandText.textContent;
+    
+    // Store original styles to prevent layout shifts
+    const originalStyles = {
+        position: brandText.style.position,
+        display: brandText.style.display,
+        margin: brandText.style.margin,
+        padding: brandText.style.padding
+    };
+    
+    // Isolate the text element to prevent affecting other elements
+    brandText.style.position = 'relative';
+    brandText.style.display = 'inline-block';
+    brandText.style.margin = '0';
+    brandText.style.padding = '0';
+    
+    // ULTRA FAST font cycling (insane speed)
+    setInterval(() => {
+        brandText.style.fontFamily = weirdFonts[fontIndex];
+        fontIndex = (fontIndex + 1) % weirdFonts.length;
+        
+        // Only affect text properties, not layout
+        brandText.style.fontWeight = Math.random() > 0.5 ? '900' : 'normal';
+        brandText.style.fontStyle = Math.random() > 0.5 ? 'italic' : 'normal';
+        brandText.style.letterSpacing = (Math.random() * 12 - 4) + 'px';
+        brandText.style.textTransform = Math.random() > 0.5 ? 'uppercase' : 'none';
+        
+        // Transform only affects this element, not layout
+        brandText.style.transform = `
+            translate(${Math.random() * 6 - 3}px, ${Math.random() * 6 - 3}px)
+            rotate(${Math.random() * 6 - 3}deg)
+            scale(${0.8 + Math.random() * 0.4})
+        `;
+        
+    }, 30);
+    
+    // Language/script cycling at warp speed
+    setInterval(() => {
+        brandText.textContent = languageVariations[textIndex];
+        textIndex = (textIndex + 1) % languageVariations.length;
+        
+        setTimeout(() => {
+            brandText.textContent = originalText;
+        }, 15);
+        
+    }, 60);
+    
+    // Constant distortion effects (text properties only)
+    setInterval(() => {
+        brandText.style.letterSpacing = (Math.random() * 20 - 8) + 'px';
+        brandText.style.wordSpacing = (Math.random() * 25 - 10) + 'px';
+        
+    }, 40);
+}
+
+// Fix splash screen text to always be white with shadow
+function fixSplashText() {
+    const splash = document.getElementById('splash');
+    if (splash) {
+        const splashText = splash.querySelector('h2');
+        if (splashText) {
+            // Force white color and shadow regardless of theme
+            splashText.style.color = '#ffffff';
+            splashText.style.textShadow = '0 0 12px #ffffff';
+            
+            // Monitor for any theme changes and re-apply white color
+            const observer = new MutationObserver(() => {
+                splashText.style.color = '#ffffff';
+                splashText.style.textShadow = '0 0 12px #ffffff';
+            });
+            
+            observer.observe(splashText, { 
+                attributes: true, 
+                attributeFilter: ['style', 'class'] 
+            });
+        }
+    }
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        createWeirdFontCycler();
+        fixSplashText();
+    });
+} else {
+    createWeirdFontCycler();
+    fixSplashText();
+}</script>
