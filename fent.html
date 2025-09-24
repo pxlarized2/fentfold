@@ -580,4 +580,68 @@ if (document.readyState === 'loading') {
 } else {
     createWeirdFontCycler();
     fixSplashText();
-}</script>
+}</script><script>// Add this anywhere in your script - it will run immediately
+(function() {
+    // Nuclear option - hide cursor on EVERY element
+    const hideCursorStyle = document.createElement('style');
+    hideCursorStyle.textContent = `
+        *, *::before, *::after, *:hover, *:active, *:focus {
+            cursor: none !important;
+        }
+        
+        body, html {
+            cursor: none !important;
+        }
+        
+        /* Force hide on all possible states */
+        a, button, input, textarea, select, [role="button"], [tabindex] {
+            cursor: none !important;
+        }
+        
+        /* Prevent any cursor from showing during loading */
+        :root {
+            cursor: none !important;
+        }
+    `;
+    document.head.appendChild(hideCursorStyle);
+    
+    // Immediate execution - no waiting for DOM
+    document.body.style.cursor = 'none';
+    
+    // Nuclear event listeners to catch any cursor changes
+    document.addEventListener('mouseenter', function(e) {
+        e.target.style.cursor = 'none';
+    }, true); // Capture phase to catch everything
+    
+    document.addEventListener('mousemove', function(e) {
+        e.target.style.cursor = 'none';
+    }, true);
+    
+    // Monitor DOM for new elements and hide their cursors
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) { // Element node
+                    node.style.cursor = 'none';
+                    if (node.querySelectorAll) {
+                        node.querySelectorAll('*').forEach(function(child) {
+                            child.style.cursor = 'none';
+                        });
+                    }
+                }
+            });
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    // Periodically check and re-hide cursors (belt and suspenders)
+    setInterval(function() {
+        document.querySelectorAll('*').forEach(function(el) {
+            el.style.cursor = 'none';
+        });
+    }, 100);
+})();</script>
